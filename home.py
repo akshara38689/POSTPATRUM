@@ -74,14 +74,14 @@ def index():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form['name']
+        username = request.form['username']
         age = request.form['age']
         gender = request.form['gender']
         address = request.form['address']
         married = request.form.get('married', 'No')
         working = request.form.get('working', 'No')
         contact = request.form['contact']
-        partner = request.form['partner']
+        partner = request.form['partner_name']
         dob = request.form['dob']
         password = request.form['password']
 
@@ -179,12 +179,14 @@ def epds():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        scores = [int(request.form[f'q{i}']) for i in range(1, 11)]
+        # Change this to match your actual number of questions (12)
+        scores = [int(request.form[f'q{i}']) for i in range(1, 13)]  # Changed from 11 to 13
         total_score = sum(scores)
 
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO epds_scores (username, score) VALUES (?, ?)", (session['username'], total_score))
+        cursor.execute("INSERT INTO epds_scores (username, score) VALUES (?, ?)", 
+                      (session['username'], total_score))
         conn.commit()
         conn.close()
 
@@ -307,6 +309,24 @@ def save_journal():
 def view_journals():
     files = os.listdir(JOURNAL_DIR)
     return render_template('view_journal.html', files=files)
+@app.route('/view_journal_content/<filename>')
+def view_journal_content(filename):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    
+    file_path = os.path.join(JOURNAL_DIR, filename)
+    
+    if not os.path.exists(file_path):
+        flash("Journal not found!", "error")
+        return redirect(url_for('view_journals'))
+    
+    with open(file_path, 'r') as file:
+        content = file.read()
+    
+    return render_template('journal_content.html', 
+                         filename=filename, 
+                         content=content,
+                         username=session['username'])
 
 # Delete Journal
 @app.route('/delete_journal/<filename>')
